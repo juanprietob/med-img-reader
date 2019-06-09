@@ -1,0 +1,28 @@
+{
+  "name": "med-img-reader",
+  "version": "1.0.0",
+  "description": "Reads any type of medical image in the browser. ",
+  "main": "dist/index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "lab -v test/test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/juanprietob/med-img-reader.git"
+  },
+  "keywords": [
+    "DICOM",
+    "reader",
+    "js",
+    "4D"
+  ],
+  "author": "juanprietob@gmail.com",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/juanprietob/med-img-reader/issues"
+  },
+  "homepage": "https://github.com/juanprietob/med-img-reader#readme"
+}
