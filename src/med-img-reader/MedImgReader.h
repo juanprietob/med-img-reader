@@ -40,8 +40,8 @@ EM_JS(const char*, resolvePath, (const char* filename), {
 });
 
 EM_JS(void, mountDirectory, (const char* filename), {
-  var path = require('path');
 
+  var path = require('path');
   var filename = path.resolve(UTF8ToString(filename));
   var dirname = path.dirname(filename);
   var fulldir = path.resolve(dirname);

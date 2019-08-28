@@ -21,11 +21,11 @@ console.log("Output image: ", outputImage);
 
 
 // console.log("Reading image...");
-// imagejs.SetFilename(inputImage);
-// imagejs.ReadImage();
+medImgReader.SetFilename(inputImage);
+medImgReader.ReadImage();
 
-medImgReader.SetDirectory(inputImage);
-medImgReader.ReadDICOMDirectory();
+// medImgReader.SetDirectory(inputImage);
+// medImgReader.ReadDICOMDirectory();
 
 
 console.log("Spacing:", medImgReader.GetSpacing());
