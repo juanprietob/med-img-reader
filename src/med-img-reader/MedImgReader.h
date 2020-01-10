@@ -9,10 +9,12 @@
 #include <bind.h>
 #include <val.h>
 
-#include <itkImage.h>
+#include <itkVectorImage.h>
 #include <itkImageFileReader.h>
 #include <itkImageFileWriter.h>
-#include <itkOrientImageFilter.h>
+#include <itkImageIOFactory.h>
+#include <itkDataObject.h>
+#include <itkSmartPointer.h>
 
 #include <itkGDCMSeriesFileNames.h>
 #include <itkImageSeriesReader.h>
@@ -39,14 +41,30 @@ EM_JS(const char*, resolvePath, (const char* filename), {
   return stringOnWasmHeap;
 });
 
-EM_JS(void, mountDirectory, (const char* filename), {
+EM_JS(const char*, baseName, (const char* filename), {
+  var path = require('path');
+  var dirname = path.dirname(UTF8ToString(filename));
+  var lengthBytes = lengthBytesUTF8(dirname)+1;
+  var stringOnWasmHeap = _malloc(lengthBytes);
+  stringToUTF8(dirname, stringOnWasmHeap, lengthBytes);
+  return stringOnWasmHeap;
+});
+
+EM_JS(const char*, dirName, (const char* filename), {
+  var path = require('path');
+  var dirname = path.dirname(UTF8ToString(filename));
+  var lengthBytes = lengthBytesUTF8(dirname)+1;
+  var stringOnWasmHeap = _malloc(lengthBytes);
+  stringToUTF8(dirname, stringOnWasmHeap, lengthBytes);
+  return stringOnWasmHeap;
+});
+
+EM_JS(void, mountDirectory, (const char* directory), {
 
   var path = require('path');
-  var filename = path.resolve(UTF8ToString(filename));
-  var dirname = path.dirname(filename);
-  var fulldir = path.resolve(dirname);
+  var fulldir = path.resolve(UTF8ToString(directory));
 
-  var currentdir = '';
+  var currentdir = '/';
   fulldir.split('/').forEach(function(dir){
     currentdir += '/' + dir;
     currentdir = path.normalize(currentdir);
@@ -56,38 +74,18 @@ EM_JS(void, mountDirectory, (const char* filename), {
 
     }
   });
-  
   try{
     FS.mount(NODEFS, { root: fulldir }, fulldir);
   }catch(e){
-    console.error(e);
+    
   }
 });
 
-class MedImgReader {
+struct MedImgReaderBase {
 public:
 
-  static const int dimension = 3;
-  typedef short PixelType;
-  typedef itk::Image< PixelType, dimension > InputImageType;
-  typedef typename InputImageType::Pointer InputImagePointerType;
-  typedef typename InputImageType::IndexType InputImageIndexType;
-  typedef typename InputImageType::SpacingType SpacingType;
-  typedef typename InputImageType::PointType PointType;
-  typedef typename InputImageType::RegionType RegionType;
-  typedef typename InputImageType::SizeType SizeType;
-  typedef typename InputImageType::DirectionType DirectionType;
-  
-  typedef itk::ImageFileReader< InputImageType > ImageFileReader;
-  typedef itk::ImageFileWriter< InputImageType > ImageFileWriter;
-
-  typedef itk::OrientImageFilter< InputImageType, InputImageType > OrientImageFilterType;
-  typedef typename OrientImageFilterType::Pointer OrientImageFilterPointerType;
-
-  MedImgReader();
-  ~MedImgReader();
-
-  void Initialize();
+  using DataObjectType = typename itk::DataObject;
+  typedef itk::SmartPointer<DataObjectType> SmartDataObjectType;
 
   void ReadImage();
 
@@ -95,29 +93,11 @@ public:
 
   void WriteImage();
 
-  val GetImageBuffer(){
-    return val(typed_memory_view((int)this->GetImage()->GetPixelContainer()->Size(),this->GetImage()->GetBufferPointer()));
-  }
+  template <unsigned int VDimension>
+  void WriteImageDimension();
 
-  val GetSpacing(){
-    return val(typed_memory_view(3, m_Spacing));
-  }
-
-  val GetOrigin(){
-    return val(typed_memory_view(3, m_Origin));
-  }
-
-  int GetNumberOfComponentsPerPixel(){
-    return this->GetImage()->GetNumberOfComponentsPerPixel();
-  }
-
-  val GetDimensions(){
-    return val(typed_memory_view(3, m_Size));
-  }
-
-  val GetDirection(){
-    return val(typed_memory_view(9, m_Direction));
-  }
+  template <class TImage>
+  void WriteImageTyped();
 
   string GetFilename(){
     return m_Filename;
@@ -125,29 +105,16 @@ public:
 
   void SetFilename(string filename){
     if(environmentIsNode()){
-      mountDirectory(filename.c_str());
+      mountDirectory(resolvePath(dirName(filename.c_str())));
       m_Filename = string(resolvePath(filename.c_str()));
     }else{
       m_Filename = filename;  
     }
   }
 
-  string GetOutputFilename(){
-    return m_OutputFilename;
-  }
-
-  void SetOutputFilename(string filename){
-    if(environmentIsNode()){
-      mountDirectory(filename.c_str());
-      m_OutputFilename = string(resolvePath(filename.c_str()));
-    }else{
-      m_OutputFilename = filename;  
-    }
-  }
-
   void SetDirectory(string directory){
     if(environmentIsNode()){
-      mountDirectory(directory.c_str());
+      mountDirectory(resolvePath(directory.c_str()));
       m_Directory = string(resolvePath(directory.c_str()));
     }else{
       m_Directory = directory;  
@@ -158,19 +125,55 @@ public:
     return m_Directory;
   }
 
-  InputImagePointerType GetImage() const { return m_Image; }
-  void SetImage(InputImagePointerType image){ m_Image = image; }
+  val GetOutput();
+  template <unsigned int VDimension>
+  val GetOutputDimensionType();
 
+  template <typename ImageType>
+  val GetOutputImageType(string componentType);
+
+  void SetInput(val const & image);
+
+  template<unsigned int VDimension>
+  void SetInputDimensionTyped(val const & image);
+
+  template<typename PixelType, unsigned int VDimension>
+  void SetInputTyped(val const & image);
+
+  template <typename ImagePointerType>
+  void SetITKImage(ImagePointerType image){ m_Image = image; }
+
+  void SetImageDimension(const int dim){
+    m_Dimension = dim;
+  }
+
+  int GetImageDimension(){
+    return m_Dimension;
+  }
+
+  void SetComponentType(const itk::ImageIOBase::IOComponentType componentType){
+    m_ComponentType = componentType;
+  }
+
+  itk::ImageIOBase::IOComponentType GetComponentType(){
+    return m_ComponentType;
+  }
+
+  template <unsigned int VDimension>
+  int ReadVectorImage(const char * inputFileName);
+
+  template <class TImage>
+  int ReadImageT(const char * fileName);
+
+  virtual void AddArrayBuffer() = 0;
+  virtual void GetStream() = 0;
+  virtual void MakeDirectory() = 0;
 private:
   string m_Filename;
-  string m_OutputFilename;
   string m_Directory;
-  InputImagePointerType m_Image;
-  
-  double m_Spacing[3];
-  double m_Origin[3];
-  double m_Direction[9];
-  int m_Size[3];
+  SmartDataObjectType m_Image;
+  int m_Dimension;
+  itk::ImageIOBase::IOComponentType m_ComponentType;
   
   
 };

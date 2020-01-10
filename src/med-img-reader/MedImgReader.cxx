@@ -1,185 +1,759 @@
 
 #include "MedImgReader.h"
 
+struct MedImgReader : public wrapper<MedImgReaderBase> {
+  EMSCRIPTEN_WRAPPER(MedImgReader);
+
+  void AddArrayBuffer(){
+    call<void>("AddArrayBuffer");
+  }
+
+  void GetStream(){
+    call<void>("GetStream");
+  }
+
+  void MakeDirectory(){
+    call<void>("MakeDirectory");
+  }
+};
+
+  
+
 // Binding code
-EMSCRIPTEN_BINDINGS(itk_image_j_s) {
-  class_<MedImgReader>("MedImgReader")
-    .constructor<>()
-    .function("ReadImage", &MedImgReader::ReadImage)
-    .function("ReadDICOMDirectory", &MedImgReader::ReadDICOMDirectory)
-    .function("GetImageBuffer", &MedImgReader::GetImageBuffer)
-    .function("GetDirection", &MedImgReader::GetDirection)
-    .function("GetDimensions", &MedImgReader::GetDimensions)
-    .function("GetNumberOfComponentsPerPixel", &MedImgReader::GetNumberOfComponentsPerPixel)
-    .function("GetOrigin", &MedImgReader::GetOrigin)
-    .function("GetSpacing", &MedImgReader::GetSpacing)
-    .function("GetFilename", &MedImgReader::GetFilename)
-    .function("SetFilename", &MedImgReader::SetFilename)
-    .function("GetOutputFilename", &MedImgReader::GetOutputFilename)
-    .function("SetOutputFilename", &MedImgReader::SetOutputFilename)
-    .function("GetDirectory", &MedImgReader::GetDirectory)
-    .function("SetDirectory", &MedImgReader::SetDirectory)
-    .function("WriteImage", &MedImgReader::WriteImage)
+EMSCRIPTEN_BINDINGS(med_img_reader) {
+  class_<MedImgReaderBase>("MedImgReaderBase")
+    .function("GetFilename", &MedImgReaderBase::GetFilename)
+    .function("SetFilename", &MedImgReaderBase::SetFilename)
+    .function("ReadImage", &MedImgReaderBase::ReadImage)    
+
+    .function("GetDirectory", &MedImgReaderBase::GetDirectory)
+    .function("SetDirectory", &MedImgReaderBase::SetDirectory)
+    .function("ReadDICOMDirectory", &MedImgReaderBase::ReadDICOMDirectory)
+
+    .function("GetOutput", &MedImgReaderBase::GetOutput)
+
+    .function("SetInput", &MedImgReaderBase::SetInput)
+    .function("WriteImage", &MedImgReaderBase::WriteImage)
+
+    .function("AddArrayBuffer", &MedImgReaderBase::AddArrayBuffer, pure_virtual())
+    .function("GetStream", &MedImgReaderBase::GetStream, pure_virtual())
+    .allow_subclass<MedImgReader>("MedImgReader")
     ;
 }
 
-MedImgReader::MedImgReader(){
-  
+void MedImgReaderBase::SetInput(val const & image){
+
+  if(image["imageType"]["dimension"].as<unsigned>() == 1){
+    this->SetInputDimensionTyped<1>(image);
+    this->SetImageDimension(1);
+  }else if(image["imageType"]["dimension"].as<unsigned>() == 2){
+    this->SetInputDimensionTyped<2>(image);
+    this->SetImageDimension(2);
+  }else if(image["imageType"]["dimension"].as<unsigned>() == 3){
+    this->SetInputDimensionTyped<3>(image);  
+    this->SetImageDimension(3);
+  }else{
+    this->SetInputDimensionTyped<4>(image);
+    this->SetImageDimension(4);
+  }
 }
 
-MedImgReader::~MedImgReader(){
+template <unsigned int VDimension>
+void MedImgReaderBase::SetInputDimensionTyped(val const & image){
   
+  string componentType = image["imageType"]["componentType"].as<string>();
+  const unsigned int dimension = VDimension;
+
+  if(componentType.compare("int8_t") == 0){
+    this->SetInputTyped<char, VDimension>(image);
+    this->SetComponentType(itk::ImageIOBase::CHAR);
+  }else if(componentType.compare("uint8_t") == 0){
+    this->SetInputTyped<unsigned char, VDimension>(image);
+    this->SetComponentType(itk::ImageIOBase::UCHAR);
+  }else if(componentType.compare("int16_t") == 0){
+    this->SetInputTyped<short, dimension>(image);
+    this->SetComponentType(itk::ImageIOBase::SHORT);
+  }else if(componentType.compare("uint16_t") == 0){
+    this->SetInputTyped<unsigned short, dimension>(image);
+    this->SetComponentType(itk::ImageIOBase::USHORT);
+  }else if(componentType.compare("int32_t") == 0){
+    this->SetInputTyped<int, dimension>(image);
+    this->SetComponentType(itk::ImageIOBase::INT);
+  }else if(componentType.compare("uint32_t") == 0){
+    this->SetInputTyped<unsigned int, dimension>(image);
+    this->SetComponentType(itk::ImageIOBase::UINT);
+  }else if(componentType.compare("int64_t") == 0){
+    this->SetInputTyped<long, dimension>(image);
+    this->SetComponentType(itk::ImageIOBase::LONG);
+  }else if(componentType.compare("uint64_t") == 0){
+    this->SetInputTyped<unsigned long, dimension>(image);
+    this->SetComponentType(itk::ImageIOBase::ULONG);
+  }else if(componentType.compare("float") == 0){
+    this->SetInputTyped<float, dimension>(image);
+    this->SetComponentType(itk::ImageIOBase::FLOAT);
+  }else{
+    this->SetInputTyped<double, dimension>(image);
+    this->SetComponentType(itk::ImageIOBase::DOUBLE);
+  }
 }
 
+template<typename PixelType, unsigned int VDimension>
+void MedImgReaderBase::SetInputTyped(val const & image){
+
+  unsigned components = image["imageType"]["components"].as<unsigned>();
+
+  typedef itk::VectorImage< PixelType, VDimension > ImageType;
+
+  typename ImageType::PixelType zero(components);
+  zero.Fill(0);
+
+  const int dimension = VDimension;
+
+  typename ImageType::SizeType size;
+  size.Fill(1);
+  
+  for(unsigned i = 0; i < dimension; ++i) {
+    size[i] = image["size"][i].as<int>();
+  }
+
+  typename ImageType::RegionType region;
+  region.SetSize(size);
+
+  typename ImageType::PointType origin;
+
+  for(unsigned i = 0; i < dimension; ++i) {
+    origin[i] = image["origin"][i].as<double>();
+  }
+  
+  typename ImageType::SpacingType spacing;
+  spacing.Fill(1);
+
+  for(unsigned i = 0; i < dimension; ++i) {
+    spacing[i] = image["spacing"][i].as<double>();
+  }
+
+  typename ImageType::DirectionType direction;
+
+  for(unsigned i = 0; i < dimension*dimension; ++i) {
+    direction.GetVnlMatrix().data_block()[i] = image["direction"]["data"][i].as<double>();
+  }
+
+
+  typename ImageType::Pointer itk_image = ImageType::New();
+  itk_image->SetNumberOfComponentsPerPixel(components);
+  itk_image->SetRegions(region);
+  itk_image->SetOrigin(origin);
+  itk_image->SetSpacing(spacing);
+  itk_image->SetDirection(direction);
+  itk_image->Allocate();
+  
+  typename ImageType::InternalPixelType* buffer = itk_image->GetBufferPointer();
+
+  unsigned numberofpixels = image["data"]["length"].as<unsigned>();
+
+  for(unsigned i = 0; i < numberofpixels; ++i) {
+    buffer[i] = image["data"][i].as<PixelType>();
+  }
+
+  this->SetITKImage(itk_image);
+
+}
 
 /*
-* This function reads an image from the NODEFS or IDBS system and sets up the different attributes in MedImgReader
+* This function reads an image from the NODEFS or IDBS system and sets up the different attributes in MedImgReaderBase
 * If executing in the browser, you must save the image first using FS.write(filename, buffer).
 * If executing inside NODE.js use mound directory with the image filename. 
 */
 
-  void MedImgReader::ReadImage(){
+void MedImgReaderBase::ReadImage(){
 
-    try{
+  string filename = this->GetFilename();
+
+  const char * inputFileName = filename.c_str();
+
+  itk::ImageIOBase::Pointer imageIO = itk::ImageIOFactory::CreateImageIO(inputFileName, itk::ImageIOFactory::FileModeType::ReadMode);
+
+  imageIO->SetFileName(inputFileName);
+  imageIO->ReadImageInformation();
+
+  using IOPixelType = itk::ImageIOBase::IOPixelType;
+  const IOPixelType pixelType = imageIO->GetPixelType();
+
+  using IOComponentType = itk::ImageIOBase::IOComponentType;
+  const IOComponentType componentType = imageIO->GetComponentType();
+
+  const unsigned int imageDimension = imageIO->GetNumberOfDimensions();
+
+  this->SetComponentType(componentType);
+  
+  if (imageDimension == 2)
+  {
+    this->ReadVectorImage<2>(inputFileName);
+  }
+  else if (imageDimension == 3)
+  {
+    this->ReadVectorImage<3>(inputFileName);
+  }
+  else if (imageDimension == 4)
+  {
+    this->ReadVectorImage<4>(inputFileName);
+  }else{
+    throw "mmm... maybe save the image as 3D but with multiple components? I have no idea what to do with this";
+  }
+  
+}
+
+void MedImgReaderBase::ReadDICOMDirectory(){
+
+  try{
+
+    using NamesGeneratorType = itk::GDCMSeriesFileNames;
+    NamesGeneratorType::Pointer nameGenerator = NamesGeneratorType::New();
+
+    string directory = this->GetDirectory();
+
+    nameGenerator->SetUseSeriesDetails(true);
+    nameGenerator->AddSeriesRestriction("0008|0021");
+    nameGenerator->SetGlobalWarningDisplay(false);
+    nameGenerator->SetDirectory(directory);
+
+    using SeriesIdContainer = std::vector< std::string >;
+    const SeriesIdContainer & seriesUID = nameGenerator->GetSeriesUIDs();
+    auto seriesItr = seriesUID.begin();
+    auto seriesEnd = seriesUID.end();
+
+    if (seriesItr != seriesEnd){
+
+      std::cout << "The directory: ";
+      std::cout << directory << std::endl;
+      std::cout << "Contains the following DICOM Series: ";
+      std::cout << std::endl;
+
+    }else{
+
+      std::cout << "No DICOMs in: " << directory << std::endl;
+      return;
+
+    }
+
+    while (seriesItr != seriesEnd){
+      std::cout << seriesItr->c_str() << std::endl;
+      ++seriesItr;
+    }
+
+    seriesItr = seriesUID.begin();
+    while (seriesItr != seriesUID.end()){
+      std::string seriesIdentifier;
+      seriesIdentifier = seriesItr->c_str();
+      seriesItr++;
+
+      std::cout << "\nReading: ";
+      std::cout << seriesIdentifier << std::endl;
+      using FileNamesContainer = std::vector< std::string >;
+      FileNamesContainer fileNames = nameGenerator->GetFileNames(seriesIdentifier);
       
-      ImageFileReader::Pointer reader = ImageFileReader::New();
-      string filename = this->GetFilename();
-      cout<<"Reading "<<filename<<endl;
-      reader->SetFileName(filename);
+      using ImageType = itk::VectorImage< short, 3>;
+
+      using ReaderType = itk::ImageSeriesReader< ImageType >;
+      ReaderType::Pointer reader = ReaderType::New();
+      using ImageIOType = itk::GDCMImageIO;
+      ImageIOType::Pointer dicomIO = ImageIOType::New();
+      reader->SetImageIO(dicomIO);
+      reader->SetFileNames(fileNames);
       reader->Update();
-      InputImagePointerType image = reader->GetOutput();
       
-      this->SetImage(image);
-      this->Initialize();
-
-    }catch(itk::ExceptionObject & err){
-      cerr<<err<<endl;
+      this->SetITKImage(reader->GetOutput());
+      this->SetComponentType(itk::ImageIOBase::SHORT);
+      this->SetImageDimension(3);
     }
-    
+
+  }catch(itk::ExceptionObject & err){
+    cerr<<err<<endl;
+  }
+  
+}
+
+/*
+* Write the image to to the file system. 
+*/
+void MedImgReaderBase::WriteImage(){
+  try{
+    if(this->GetImageDimension() == 1){
+      this->WriteImageDimension<1>();
+    }else if(this->GetImageDimension() == 2){
+      return this->WriteImageDimension<2>();
+    }else if(this->GetImageDimension() == 3){
+      return this->WriteImageDimension<3>();
+    }else{
+      return this->WriteImageDimension<4>();
+    }
+  }catch(itk::ExceptionObject & err){
+    cerr<<err<<endl;
   }
 
-  void MedImgReader::ReadDICOMDirectory(){
+}
 
-    try{
+template <unsigned int VDimension>
+void MedImgReaderBase::WriteImageDimension(){
+  switch (this->GetComponentType())
+  {
+    default:
+    case itk::ImageIOBase::UCHAR:
+    {
+      using PixelType = unsigned char;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
 
-      using NamesGeneratorType = itk::GDCMSeriesFileNames;
-      NamesGeneratorType::Pointer nameGenerator = NamesGeneratorType::New();
+      this->WriteImageTyped<ImageType>();
 
-      string directory = this->GetDirectory();
+      break;
+    }
 
-      nameGenerator->SetUseSeriesDetails(true);
-      nameGenerator->AddSeriesRestriction("0008|0021");
-      nameGenerator->SetGlobalWarningDisplay(false);
-      nameGenerator->SetDirectory(directory);
+    case itk::ImageIOBase::CHAR:
+    {
+      using PixelType = char;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
 
+      this->WriteImageTyped<ImageType>();
+      break;
+    }
 
-      using SeriesIdContainer = std::vector< std::string >;
-      const SeriesIdContainer & seriesUID = nameGenerator->GetSeriesUIDs();
-      auto seriesItr = seriesUID.begin();
-      auto seriesEnd = seriesUID.end();
+    case itk::ImageIOBase::USHORT:
+    {
+      using PixelType = unsigned short;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
 
-      if (seriesItr != seriesEnd){
+      this->WriteImageTyped<ImageType>();
+      break;
+    }
 
-        std::cout << "The directory: ";
-        std::cout << directory << std::endl;
-        std::cout << "Contains the following DICOM Series: ";
-        std::cout << std::endl;
+    case itk::ImageIOBase::SHORT:
+    {
+      using PixelType = short;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
 
-      }else{
+      this->WriteImageTyped<ImageType>();
+      break;
+    }
 
-        std::cout << "No DICOMs in: " << directory << std::endl;
-        return;
+    case itk::ImageIOBase::UINT:
+    {
+      using PixelType = unsigned int;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
 
+      this->WriteImageTyped<ImageType>();
+      break;
+    }
+
+    case itk::ImageIOBase::INT:
+    {
+      using PixelType = int;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      this->WriteImageTyped<ImageType>();
+      break;
+    }
+
+    case itk::ImageIOBase::ULONG:
+    {
+      using PixelType = unsigned long;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      this->WriteImageTyped<ImageType>();
+      break;
+    }
+
+    case itk::ImageIOBase::LONG:
+    {
+      using PixelType = long;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      this->WriteImageTyped<ImageType>();
+      break;
+    }
+
+    case itk::ImageIOBase::FLOAT:
+    {
+      using PixelType = float;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      this->WriteImageTyped<ImageType>();
+      break;
+    }
+
+    case itk::ImageIOBase::DOUBLE:
+    {
+      using PixelType = double;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      this->WriteImageTyped<ImageType>();
+      break;
+    }
+  }
+}
+
+template <class TImage>
+void MedImgReaderBase::WriteImageTyped(){
+
+  using ImageType = TImage;
+  using ImageFileWriter = itk::ImageFileWriter<ImageType>;
+  typename ImageFileWriter::Pointer writer = ImageFileWriter::New();
+  string filename = this->GetFilename();
+  writer->SetFileName(filename);
+  ImageType* itk_image = static_cast<ImageType*>(m_Image.GetPointer());
+  writer->SetInput(itk_image);
+  writer->Update();
+}
+
+val MedImgReaderBase::GetOutput(){
+  if(this->GetImageDimension() == 2){
+    return this->GetOutputDimensionType<2>();
+  }else if(this->GetImageDimension() == 3){
+    return this->GetOutputDimensionType<3>();
+  }else{
+    return this->GetOutputDimensionType<4>();
+  }
+}
+
+template <unsigned int VDimension>
+val MedImgReaderBase::GetOutputDimensionType(){
+  
+  
+  switch (this->GetComponentType())
+  {
+    default:
+    case itk::ImageIOBase::UCHAR:
+    {
+      using PixelType = unsigned char;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      return this->GetOutputImageType<ImageType>("uint8_t");
+
+      break;
+    }
+
+    case itk::ImageIOBase::CHAR:
+    {
+      using PixelType = char;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      return this->GetOutputImageType<ImageType>("int8_t");
+      break;
+    }
+
+    case itk::ImageIOBase::USHORT:
+    {
+      using PixelType = unsigned short;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      return this->GetOutputImageType<ImageType>("uint16_t");
+      break;
+    }
+
+    case itk::ImageIOBase::SHORT:
+    {
+      using PixelType = short;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      return this->GetOutputImageType<ImageType>("int16_t");
+      break;
+    }
+
+    case itk::ImageIOBase::UINT:
+    {
+      using PixelType = unsigned int;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      return this->GetOutputImageType<ImageType>("uint32_t");
+      break;
+    }
+
+    case itk::ImageIOBase::INT:
+    {
+      using PixelType = int;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      return this->GetOutputImageType<ImageType>("int32_t");
+      break;
+    }
+
+    case itk::ImageIOBase::ULONG:
+    {
+      using PixelType = unsigned long;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      return this->GetOutputImageType<ImageType>("uint64_t");
+      break;
+    }
+
+    case itk::ImageIOBase::LONG:
+    {
+      using PixelType = long;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      return this->GetOutputImageType<ImageType>("int64_t");
+      break;
+    }
+
+    case itk::ImageIOBase::FLOAT:
+    {
+      using PixelType = float;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      return this->GetOutputImageType<ImageType>("float");
+      break;
+    }
+
+    case itk::ImageIOBase::DOUBLE:
+    {
+      using PixelType = double;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      return this->GetOutputImageType<ImageType>("double");
+      break;
+    }
+  }
+}
+
+template <typename ImageType>
+val MedImgReaderBase::GetOutputImageType(string componentType)
+{
+  // image = {
+  //   imageType: {
+  //     dimension: 2,
+  //     componentType: 'uint16_t',
+  //     pixelType: 1,
+  //     components: 1
+  //   },
+  //   name: 'Image',
+  //   origin: [ 0, 0 ],
+  //   spacing: [ 0.148489, 0.148489 ],
+  //   direction: { rows: 2, columns: 2, data: [ 1, 0, 0, 1 ] },
+  //   size: [ 1136, 852 ],
+  //   data: Uint16Array []
+  // }
+  ImageType* itk_image = static_cast<ImageType*>(m_Image.GetPointer());
+  
+
+  val origin = val::array();
+  val spacing = val::array();
+  val size = val::array();
+  val direction = val::array();
+
+  typename ImageType::SpacingType i_spacing = itk_image->GetSpacing();
+  typename ImageType::PointType i_origin = itk_image->GetOrigin();
+  typename ImageType::SizeType i_size = itk_image->GetLargestPossibleRegion().GetSize();
+  typename ImageType::DirectionType::InternalMatrixType i_direction = itk_image->GetDirection().GetVnlMatrix();
+
+  int i_dimension = itk_image->GetImageDimension();
+
+  for(unsigned i = 0; i < i_dimension; i++){
+    origin.call<void>("push", i_origin[i]);
+    spacing.call<void>("push", i_spacing[i]);
+    size.call<void>("push", i_size[i]);
+  }
+
+  for(unsigned i = 0; i < i_direction.size(); i++){
+    direction.call<void>("push", i_direction.data_block()[i]);
+  }
+
+  val imageType = val::object();
+  imageType.set("dimension", i_dimension);
+  imageType.set("components", (int)itk_image->GetNumberOfComponentsPerPixel());
+  imageType.set("componentType", val(componentType));
+
+  val matrixType = val::object();
+  matrixType.set("rows", i_direction.rows());
+  matrixType.set("columns", i_direction.columns());
+  matrixType.set("data", direction);
+
+  val image = val::object();
+  image.set("imageType", imageType);
+  image.set("name", val("Image"));
+  image.set("origin", origin);
+  image.set("spacing", spacing);
+  image.set("direction", matrixType);
+  image.set("size", size);
+  image.set("data", val(typed_memory_view((int)itk_image->GetPixelContainer()->Size(),itk_image->GetBufferPointer())));
+  return image;
+}
+
+template <class TImage>
+int
+MedImgReaderBase::ReadImageT(const char * fileName){
+  using ImageType = TImage;
+  using ImageReaderType = itk::ImageFileReader<ImageType>;
+
+  typename ImageReaderType::Pointer reader = ImageReaderType::New();
+  reader->SetFileName(fileName);
+
+  try
+  {
+    reader->Update();
+  }
+  catch (itk::ExceptionObject & e)
+  {
+    std::cerr << e.what() << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  using ImagePointerType = typename ImageType::Pointer;
+  ImagePointerType image = reader->GetOutput();
+
+  this->SetITKImage(image);
+  this->SetImageDimension(image->GetImageDimension());
+
+  return EXIT_SUCCESS;
+}
+
+template <unsigned int VDimension>
+int
+MedImgReaderBase::ReadVectorImage(const char * inputFileName)
+{
+  switch (this->GetComponentType())
+  {
+    default:
+    case itk::ImageIOBase::UNKNOWNCOMPONENTTYPE:
+      std::cerr << "Unknown and unsupported component type!" << std::endl;
+      return EXIT_FAILURE;
+
+    case itk::ImageIOBase::UCHAR:
+    {
+      using PixelType = unsigned char;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      if (this->ReadImageT<ImageType>(inputFileName) == EXIT_FAILURE)
+      {
+        return EXIT_FAILURE;
       }
 
-      while (seriesItr != seriesEnd){
-        std::cout << seriesItr->c_str() << std::endl;
-        ++seriesItr;
+      break;
+    }
+
+    case itk::ImageIOBase::CHAR:
+    {
+      using PixelType = char;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      typename ImageType::Pointer image = ImageType::New();
+
+      if (this->ReadImageT<ImageType>(inputFileName) == EXIT_FAILURE)
+      {
+        return EXIT_FAILURE;
       }
+      break;
+    }
 
-      seriesItr = seriesUID.begin();
-      while (seriesItr != seriesUID.end()){
-        std::string seriesIdentifier;
-        seriesIdentifier = seriesItr->c_str();
-        seriesItr++;
-      
+    case itk::ImageIOBase::USHORT:
+    {
+      using PixelType = unsigned short;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
 
-        std::cout << "\nReading: ";
-        std::cout << seriesIdentifier << std::endl;
-        using FileNamesContainer = std::vector< std::string >;
-        FileNamesContainer fileNames = nameGenerator->GetFileNames(seriesIdentifier);
+      typename ImageType::Pointer image = ImageType::New();
 
-        using ReaderType = itk::ImageSeriesReader< InputImageType >;
-        ReaderType::Pointer reader = ReaderType::New();
-        using ImageIOType = itk::GDCMImageIO;
-        ImageIOType::Pointer dicomIO = ImageIOType::New();
-        reader->SetImageIO(dicomIO);
-        reader->SetFileNames(fileNames);
-        reader->Update();
-        this->SetImage(reader->GetOutput());
+      if (this->ReadImageT<ImageType>(inputFileName) == EXIT_FAILURE)
+      {
+        return EXIT_FAILURE;
       }
-      
-      this->Initialize();
-
-    }catch(itk::ExceptionObject & err){
-      cerr<<err<<endl;
-    }
-    
-  }
-
-  /*
-  * After reading the image, it sets up different attributes
-  */
-  void MedImgReader::Initialize(){
-
-    InputImagePointerType img = this->GetImage();
-
-    OrientImageFilterPointerType orienter = OrientImageFilterType::New();
-    orienter->UseImageDirectionOn();
-    orienter->SetDesiredCoordinateOrientation(itk::SpatialOrientation::ITK_COORDINATE_ORIENTATION_RAS);
-    orienter->SetInput(img);
-    orienter->Update();
-    this->SetImage(orienter->GetOutput());
-
-    img = this->GetImage();
-
-    SizeType size = img->GetLargestPossibleRegion().GetSize();
-    m_Size[0] = size[0];
-    m_Size[1] = size[1];
-    m_Size[2] = size[2];
-
-    SpacingType spacing = img->GetSpacing();
-    m_Spacing[0] = spacing[0];
-    m_Spacing[1] = spacing[1];
-    m_Spacing[2] = spacing[2];
-    
-    DirectionType direction = img->GetDirection();
-
-    for(int i = 0; i < dimension*dimension; i++){
-      m_Direction[i] = direction[i/dimension][i%dimension];
+      break;
     }
 
-    PointType origin = img->GetOrigin();
+    case itk::ImageIOBase::SHORT:
+    {
+      using PixelType = short;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
 
-    m_Origin[0] = origin[0];
-    m_Origin[1] = origin[1];
-    m_Origin[2] = origin[2];
-    
-  }
+      typename ImageType::Pointer image = ImageType::New();
 
-  /*
-  * Write the image to to the file system. 
-  */
-  void MedImgReader::WriteImage(){
-    try{
-    
-      ImageFileWriter::Pointer writer = ImageFileWriter::New();
-      string filename = this->GetOutputFilename();
-      writer->SetFileName(filename);
-      writer->SetInput(this->GetImage());
-      writer->Update();
-    }catch(itk::ExceptionObject & err){
-      cerr<<err<<endl;
+      if (this->ReadImageT<ImageType>(inputFileName) == EXIT_FAILURE)
+      {
+        return EXIT_FAILURE;
+      }
+      break;
     }
 
+    case itk::ImageIOBase::UINT:
+    {
+      using PixelType = unsigned int;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      typename ImageType::Pointer image = ImageType::New();
+
+      if (this->ReadImageT<ImageType>(inputFileName) == EXIT_FAILURE)
+      {
+        return EXIT_FAILURE;
+      }
+      break;
+    }
+
+    case itk::ImageIOBase::INT:
+    {
+      using PixelType = int;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      typename ImageType::Pointer image = ImageType::New();
+
+      if (this->ReadImageT<ImageType>(inputFileName) == EXIT_FAILURE)
+      {
+        return EXIT_FAILURE;
+      }
+      break;
+    }
+
+    case itk::ImageIOBase::ULONG:
+    {
+      using PixelType = unsigned long;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      typename ImageType::Pointer image = ImageType::New();
+
+      if (this->ReadImageT<ImageType>(inputFileName) == EXIT_FAILURE)
+      {
+        return EXIT_FAILURE;
+      }
+      break;
+    }
+
+    case itk::ImageIOBase::LONG:
+    {
+      using PixelType = long;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      typename ImageType::Pointer image = ImageType::New();
+
+      if (this->ReadImageT<ImageType>(inputFileName) == EXIT_FAILURE)
+      {
+        return EXIT_FAILURE;
+      }
+      break;
+    }
+
+    case itk::ImageIOBase::FLOAT:
+    {
+      using PixelType = float;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      typename ImageType::Pointer image = ImageType::New();
+
+      if (this->ReadImageT<ImageType>(inputFileName) == EXIT_FAILURE)
+      {
+        return EXIT_FAILURE;
+      }
+      break;
+    }
+
+    case itk::ImageIOBase::DOUBLE:
+    {
+      using PixelType = double;
+      using ImageType = itk::VectorImage<PixelType, VDimension>;
+
+      typename ImageType::Pointer image = ImageType::New();
+
+      if (this->ReadImageT<ImageType>(inputFileName) == EXIT_FAILURE)
+      {
+        return EXIT_FAILURE;
+      }
+      break;
+    }
   }
+  return EXIT_SUCCESS;
+}
