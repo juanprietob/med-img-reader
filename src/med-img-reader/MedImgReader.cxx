@@ -177,7 +177,7 @@ void MedImgReaderBase::ReadImage(){
   imageIO->ReadImageInformation();
 
   using IOPixelType = itk::ImageIOBase::IOPixelType;
-  const IOPixelType pixelType = imageIO->GetPixelType();
+  const IOPixelType pixelType = imageIO->GetPixelType();  
 
   using IOComponentType = itk::ImageIOBase::IOComponentType;
   const IOComponentType componentType = imageIO->GetComponentType();
@@ -185,6 +185,7 @@ void MedImgReaderBase::ReadImage(){
   const unsigned int imageDimension = imageIO->GetNumberOfDimensions();
 
   this->SetComponentType(componentType);
+  this->SetPixelType(pixelType);
   
   if (imageDimension == 2)
   {
@@ -264,6 +265,7 @@ void MedImgReaderBase::ReadDICOMDirectory(){
       
       this->SetITKImage(reader->GetOutput());
       this->SetComponentType(itk::ImageIOBase::SHORT);
+      this->SetPixelType(itk::ImageIOBase::IOPixelType::SCALAR);
       this->SetImageDimension(3);
     }
 
@@ -560,6 +562,7 @@ val MedImgReaderBase::GetOutputImageType(string componentType)
   imageType.set("dimension", i_dimension);
   imageType.set("components", (int)itk_image->GetNumberOfComponentsPerPixel());
   imageType.set("componentType", val(componentType));
+  imageType.set("pixelType", (int)this->GetPixelType());
 
   val matrixType = val::object();
   matrixType.set("rows", i_direction.rows());

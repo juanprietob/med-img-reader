@@ -159,6 +159,14 @@ public:
     return m_ComponentType;
   }
 
+  void SetPixelType(const itk::ImageIOBase::IOPixelType pixelType){
+    m_PixelType = pixelType;
+  }
+
+  itk::ImageIOBase::IOPixelType GetPixelType(){
+    return m_PixelType;
+  }
+
   template <unsigned int VDimension>
   int ReadVectorImage(const char * inputFileName);
 
@@ -174,6 +182,7 @@ private:
   SmartDataObjectType m_Image;
   int m_Dimension;
   itk::ImageIOBase::IOComponentType m_ComponentType;
+  itk::ImageIOBase::IOPixelType m_PixelType;
   
   
 };
