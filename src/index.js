@@ -1,5 +1,7 @@
 
-const {MedImgReaderBase, FS} = require("./MedImgReader")
+import MedImgReaderModule from "../build/MedImgReader";
+
+const {MedImgReaderBase, FS} = MedImgReaderModule();
 
 const MedImgReader = MedImgReaderBase.extend("MedImgReader", {
     __construct: function() {
