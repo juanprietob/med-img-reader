@@ -7,7 +7,8 @@
     "test": "test"
   },
   "scripts": {
-    "test": "lab -v test/test"
+    "test": "lab -v test/test.js",
+    "rollup": "rollup src/index.js --file dist/index.js --format umd --name med-img-reader"
   },
   "repository": {
     "type": "git",
@@ -24,5 +25,8 @@
   "bugs": {
     "url": "https://github.com/juanprietob/med-img-reader/issues"
   },
-  "homepage": "https://github.com/juanprietob/med-img-reader#readme"
+  "homepage": "https://github.com/juanprietob/med-img-reader#readme",
+  "dependencies": {
+    "@hapi/lab": "^22.0.3"
+  }
 }
