@@ -1,9 +1,7 @@
-const {MedImgReaderBase, FS} = require('./MedImgReader');
+
+const {MedImgReaderBase, FS} = require("./MedImgReader")
+
 const MedImgReader = MedImgReaderBase.extend("MedImgReader", {
-    // __construct and __destruct are optional.  They are included
-    // in this example for illustration purposes.
-    // If you override __construct or __destruct, don't forget to
-    // call the parent implementation!
     __construct: function() {
         this.__parent.__construct.call(this);
     },
@@ -29,4 +27,4 @@ const MedImgReader = MedImgReaderBase.extend("MedImgReader", {
     }
 });
 
-module.exports = MedImgReader;
+export default MedImgReader;
