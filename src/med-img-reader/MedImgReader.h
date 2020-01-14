@@ -173,9 +173,11 @@ public:
   template <class TImage>
   int ReadImageT(const char * fileName);
 
-  virtual void AddArrayBuffer() = 0;
+  virtual void WriteFile() = 0;
   virtual void GetStream() = 0;
+  virtual void CloseStream() = 0;
   virtual void MakeDirectory() = 0;
+
 private:
   string m_Filename;
   string m_Directory;

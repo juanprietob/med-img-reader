@@ -10,15 +10,27 @@ const MedImgReader = MedImgReaderBase.extend("MedImgReader", {
     __destruct: function() {
         this.__parent.__destruct.call(this);
     },
-    AddArrayBuffer: function(array_buffer, filename){
-    	var stream = FS.open(filename, 'w+');
-    	FS.write(stream, array_buffer, 0, $array_buffer.length, 0);
-    	FS.close(stream);
+    WriteFile: function(filename, array_buffer){
+        try{
+            FS.writeFile(filename, new Uint8Array(array_buffer), { encoding: 'binary' }); 
+        }catch(e){
+            console.error(e);
+        }
     },
-    GetStream: function() {
-    	var filename = this.GetFilename();
-    	var stream = FS.open(filename);
-        return Promise.resolve(stream);
+    GetStream: function(filename) {
+        try{
+            var stream = FS.open(filename);
+            return stream;
+        }catch(e){
+            console.error(e);
+        }
+    },
+    CloseStream: function(stream){
+        try{
+            FS.close(stream);
+        }catch(e){
+            console.error();
+        }
     },
     MakeDirectory(directory){
     	try{

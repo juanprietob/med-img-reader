@@ -4,12 +4,16 @@
 struct MedImgReader : public wrapper<MedImgReaderBase> {
   EMSCRIPTEN_WRAPPER(MedImgReader);
 
-  void AddArrayBuffer(){
-    call<void>("AddArrayBuffer");
+  void WriteFile(){
+    call<void>("WriteFile");
   }
 
   void GetStream(){
     call<void>("GetStream");
+  }
+
+  void CloseStream(){
+    call<void>("CloseStream");
   }
 
   void MakeDirectory(){
@@ -35,8 +39,10 @@ EMSCRIPTEN_BINDINGS(med_img_reader) {
     .function("SetInput", &MedImgReaderBase::SetInput)
     .function("WriteImage", &MedImgReaderBase::WriteImage)
 
-    .function("AddArrayBuffer", &MedImgReaderBase::AddArrayBuffer, pure_virtual())
+    .function("WriteFile", &MedImgReaderBase::WriteFile, pure_virtual())
     .function("GetStream", &MedImgReaderBase::GetStream, pure_virtual())
+    .function("CloseStream", &MedImgReaderBase::CloseStream, pure_virtual())
+    .function("MakeDirectory", &MedImgReaderBase::MakeDirectory, pure_virtual())
     .allow_subclass<MedImgReader>("MedImgReader")
     ;
 }
