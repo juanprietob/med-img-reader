@@ -62,3 +62,9 @@ typings/
 
 # build folder
 build
+
+test/bmode.dcm
+test/gravitational.jpg
+test/series-000001/
+test/test-med-img-reader-lib/
+test/test-med-img-reader/
