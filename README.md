@@ -11,69 +11,119 @@ Read a dicom series in the browser using ITK series reader.
 
 ## Usage example
 
-### First things first
+### In NODE environment
+
+#### Read a single image file
 
 ---
-	const {FS, MedImgReader} = require('med-img-reader');
+	const MedImgReader = require('med-img-reader');
+
+	//Image with one or multiple components in any format
+	var inputImage = '/path/to/input{.nrrd,.nii.gz,.jpg,.dcm}'
+	var outputImage = '/path/to/output{.nrrd,.nii.gz,.jpg,.dcm}'
+
+
+	const medImgReader = new MedImgReader();
+	medImgReader.SetFilename(inputImage);
+	medImgReader.ReadImage();
+	var image = medImgReader.GetOutput();
+	console.log("Image:", image);
+	
+
+    const medImgWriter = new MedImgReader();
+	
+	medImgWriter.SetInput(image);
+	medImgWriter.SetFilename(outputImage);
+	medImgWriter.WriteImage();
 ---
 
-### Example how to get some dicom files and write them in the browser
+#### Read a DICOM series
 
 ---
-	getDicomFiles(){
+        
+	var inputDirectory = '/path/to/series/directory'
+	var outputImage = 'out.nrrd';
+
+	const medImgReader = new MedImgReader();
+	medImgReader.SetDirectory(inputDirectory);
+	medImgReader.ReadDICOMDirectory();
+
+	var image = medImgReader.GetOutput();
+
+	const medImgWriter = new MedImgReader();
+	medImgWriter.SetInput(inputImage);
+	medImgWriter.SetFilename(outputImage);
+	medImgWriter.WriteImage();
+---
+
+### In browser environment 
+
+#### React component
+
+If you are going to use this in the browser, the build time will be long so be patient.
+This library is compiled using [emscripten](https://emscripten.org/) and it bundles a file system with the [FS library](https://emscripten.org/docs/api_reference/Filesystem-API.html).
+
+Here is an example for a React component:
+
+---
+	import React, { Component } from 'react'
+
+	const axios = require('axios');
+	const MedImgReader = require('med-img-reader');
+
+	export default class ExampleComponent extends Component {
+
+	  constructor(){
+	    super();
+
+	    this.state = {
+	      itkImage: {}
+	    }
+
 	    const self = this;
+	    var medImgReader = new MedImgReader();
 
-	    var series_dir = '/some_dir';
+	    var filename = '/brain.png';
 
-	    try{
-	    //This package uses FS from emscripten, for more information on FS read the documentation at https://emscripten.org/docs/api_reference/Filesystem-API.html
-	      FS.stat(series_dir);
-	    }catch(e){
-	      FS.mkdir(series_dir);
-	    }
-		
-		//Use your own mechanism to request the dicom file from your server. You can use 'axios' for example or http from angular etc.
-	    return self.getDicomBufferSomeHow()
-		.then(function(res){
-		  if(res.data){
-		    var img_filepath = series_dir + '/mydcmfile';
-		    try{
-		      //This will write the dicom file in the FS file system in the browser
-		      FS.writeFile(img_filepath, new Uint8Array(res.data), { encoding: 'binary' });  
-		    }catch(e){
-		      console.error(e);
-		    }
-		  }else{
-		    console.error(res);
-		  }
-		});
+	    axios({
+	      method: 'get',
+	      url: filename,
+	      responseType: 'blob'
+	    })
+	    .then(function(brain){
+	      var blob = brain.data;
+	      return blob.arrayBuffer()
+	      .then((arr)=>{
+	        medImgReader.WriteFile(filename, arr);//We add the file to the FS filesystem
+	        medImgReader.SetFilename(filename);//Set the file name 
+	        medImgReader.ReadImage();
+	        return medImgReader.GetOutput();
+	      })
+	      
+	    })
+	    .then((itkImage)=>{
+	      self.setState({...self.state, itkImage})
+	    })
+	  }
+
+	  render() {
+
+	    const {
+	      itkImage
+	    } = this.state;
+
+	    var copyImg = {...itkImage, data: []};
+
+	    return (
+	      <div className={styles.test}>
+	        {JSON.stringify(copyImg)}
+	      </div>
+	    )
+	  }
 	}
----
-
-### Example how to read the dicom series
 
 ---
-	readSeries(series_dir){
-	    try{
-	      const medImgReader = new MedImgReader();
-	      medImgReader.SetDirectory(series_dir);
-	      medImgReader.ReadDICOMDirectory();    
-	      return Promise.resolve(medImgReader);
-	    }catch(e){
-	      return Promise.reject(e);
-	    }
-	}
----
 
-### Example to manipulate the image data
+### Display the image using [vtk.js](https://kitware.github.io/vtk-js/index.html)
 
----
-	getTheActualImageData(medImgReader) {
-	    medImgReader.GetOrigin();
-      	medImgReader.GetSpacing();
-	    medImgReader.GetImageBuffer();//This is the array with the actual values of the dicom series
-	    medImgReader.GetNumberOfComponentsPerPixel();
-	    medImgReader.GetDirection();
-	    medImgReader.GetDimensions();
-	}
----
+Example is here [react-med-img-viewer](https://www.npmjs.com/package/react-med-img-viewer)
