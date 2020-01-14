@@ -127,3 +127,14 @@ Here is an example for a React component:
 ### Display the image using [vtk.js](https://kitware.github.io/vtk-js/index.html)
 
 Example is here [react-med-img-viewer](https://www.npmjs.com/package/react-med-img-viewer)
+
+### Convert the image to a Tensor from tensorflow (tfjs)[https://www.tensorflow.org/js/]
+
+---
+	const tf = require('@tensorflow/tfjs-node');//Or tfjs in browser or tfjs-node-gpu if in linux
+
+	tf.tensor(
+		Float32Array.from(itkImage.data), 
+		[1, ...[...itkImage.size].reverse(), itkImage.imageType.components]
+	));
+---
