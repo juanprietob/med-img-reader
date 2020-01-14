@@ -128,7 +128,7 @@ Here is an example for a React component:
 
 Example is here [react-med-img-viewer](https://www.npmjs.com/package/react-med-img-viewer)
 
-### Convert the image to a Tensor from tensorflow (tfjs)[https://www.tensorflow.org/js/]
+### Convert the image to a Tensor from tensorflow [tfjs](https://www.tensorflow.org/js/)
 
 ---
 	const tf = require('@tensorflow/tfjs-node');//Or tfjs in browser or tfjs-node-gpu if in linux
