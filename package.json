@@ -26,7 +26,8 @@
     "url": "https://github.com/juanprietob/med-img-reader/issues"
   },
   "homepage": "https://github.com/juanprietob/med-img-reader#readme",
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
     "@hapi/lab": "^22.0.3"
   }
 }
