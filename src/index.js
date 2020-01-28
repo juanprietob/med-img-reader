@@ -12,7 +12,8 @@ const MedImgReader = MedImgReaderBase.extend("MedImgReader", {
     },
     WriteFile: function(filename, array_buffer){
         try{
-            FS.writeFile(filename, new Uint8Array(array_buffer), { encoding: 'binary' }); 
+            FS.writeFile(filename, new Uint8Array(array_buffer), { encoding: 'binary' });
+            return Promise.resolve(); 
         }catch(e){
             console.error(e);
         }
@@ -20,7 +21,7 @@ const MedImgReader = MedImgReaderBase.extend("MedImgReader", {
     GetStream: function(filename) {
         try{
             var stream = FS.open(filename);
-            return stream;
+            return Promise.resolve(stream);
         }catch(e){
             console.error(e);
         }
@@ -28,6 +29,7 @@ const MedImgReader = MedImgReaderBase.extend("MedImgReader", {
     CloseStream: function(stream){
         try{
             FS.close(stream);
+            return Promise.resolve();
         }catch(e){
             console.error();
         }
@@ -35,6 +37,7 @@ const MedImgReader = MedImgReaderBase.extend("MedImgReader", {
     MakeDirectory(directory){
     	try{
     		FS.mkdir(directory);
+            return Promise.resolve();
     	}catch(e){
     		console.error(e);
     	}
