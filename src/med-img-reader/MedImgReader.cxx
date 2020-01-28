@@ -407,7 +407,7 @@ void MedImgReaderBase::WriteImageTyped(){
   typename ImageFileWriter::Pointer writer = ImageFileWriter::New();
   string filename = this->GetFilename();
   writer->SetFileName(filename);
-  ImageType* itk_image = static_cast<ImageType*>(m_Image.GetPointer());
+  ImageType* itk_image = static_cast<ImageType*>(m_Image);
   writer->SetInput(itk_image);
   writer->Update();
 }
@@ -539,8 +539,7 @@ val MedImgReaderBase::GetOutputImageType(string componentType)
   //   size: [ 1136, 852 ],
   //   data: Uint16Array []
   // }
-  ImageType* itk_image = static_cast<ImageType*>(m_Image.GetPointer());
-  
+  ImageType* itk_image = static_cast<ImageType*>(m_Image);
 
   val origin = val::array();
   val spacing = val::array();
@@ -583,6 +582,7 @@ val MedImgReaderBase::GetOutputImageType(string componentType)
   image.set("direction", matrixType);
   image.set("size", size);
   image.set("data", val(typed_memory_view((int)itk_image->GetPixelContainer()->Size(),itk_image->GetBufferPointer())));
+
   return image;
 }
 

@@ -14,7 +14,6 @@
 #include <itkImageFileWriter.h>
 #include <itkImageIOFactory.h>
 #include <itkDataObject.h>
-#include <itkSmartPointer.h>
 
 #include <itkGDCMSeriesFileNames.h>
 #include <itkImageSeriesReader.h>
@@ -85,7 +84,12 @@ struct MedImgReaderBase {
 public:
 
   using DataObjectType = typename itk::DataObject;
-  typedef itk::SmartPointer<DataObjectType> SmartDataObjectType;
+
+  ~MedImgReaderBase(){
+    if(m_Image){
+      m_Image->SetReferenceCount(m_Image->GetReferenceCount() - 1);
+    }
+  }
 
   void ReadImage();
 
@@ -141,7 +145,13 @@ public:
   void SetInputTyped(val const & image);
 
   template <typename ImagePointerType>
-  void SetITKImage(ImagePointerType image){ m_Image = image; }
+  void SetITKImage(ImagePointerType image){ 
+    if(m_Image){
+      m_Image->SetReferenceCount(m_Image->GetReferenceCount() - 1);
+    }
+    m_Image = image; 
+    m_Image->SetReferenceCount(m_Image->GetReferenceCount() + 1);
+  }
 
   void SetImageDimension(const int dim){
     m_Dimension = dim;
@@ -181,7 +191,7 @@ public:
 private:
   string m_Filename;
   string m_Directory;
-  SmartDataObjectType m_Image;
+  DataObjectType* m_Image = 0;
   int m_Dimension;
   itk::ImageIOBase::IOComponentType m_ComponentType;
   itk::ImageIOBase::IOPixelType m_PixelType;
