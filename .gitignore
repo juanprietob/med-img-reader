@@ -68,3 +68,8 @@ test/gravitational.jpg
 test/series-000001/
 test/test-med-img-reader-lib/
 test/test-med-img-reader/
+test/bmode_out.nrrd
+test/brain_out.nrrd
+test/gravitational_out.nrrd
+test/series-000001.nrrd
+test/t1_out.nii.gz
