@@ -19,6 +19,7 @@ lab.experiment("Test image-pad-resample", function(){
 		medImgReader.ReadImage();
 
 		inputImage = medImgReader.GetOutput();
+		medImgReader.delete();
 		console.log("Image:", inputImage);
 		
         const medImgReader2 = new MedImgReader();
@@ -28,11 +29,12 @@ lab.experiment("Test image-pad-resample", function(){
 		medImgReader2.WriteImage();
 
 		console.log(medImgReader2.GetFilename());
-		medImgReader2.GetStream()
+		medImgReader2.GetStream(medImgReader2.GetFilename())
 		.then((wtf)=>{
 			console.log(wtf)
 		})
 		
+
 
         return true;
     });
