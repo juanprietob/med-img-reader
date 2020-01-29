@@ -406,6 +406,7 @@ void MedImgReaderBase::WriteImageTyped(){
   using ImageFileWriter = itk::ImageFileWriter<ImageType>;
   typename ImageFileWriter::Pointer writer = ImageFileWriter::New();
   string filename = this->GetFilename();
+  writer->UseCompressionOn();
   writer->SetFileName(filename);
   ImageType* itk_image = static_cast<ImageType*>(m_Image);
   writer->SetInput(itk_image);

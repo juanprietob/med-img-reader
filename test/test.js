@@ -60,11 +60,6 @@ lab.experiment("Test image-pad-resample", function(){
 		medImgReader2.SetFilename(outputImage);
 		medImgReader2.WriteImage();
 
-		medImgReader.GetStream()
-		.then((wtf)=>{
-			console.log(wtf)
-		});
-
         return true;
     });
 
