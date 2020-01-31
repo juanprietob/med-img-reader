@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.3)
 include(ExternalProject)
 
-SET(FLAGS "--bind -Wno-warn-absolute-paths --memory-init-file 0 -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_MEMORY_GROWTH=1 -s MODULARIZE=1 -s EXPORT_NAME=\"'MedImgReaderModule'\" -s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\"]'" )
+SET(FLAGS "--bind -Wno-warn-absolute-paths --memory-init-file 0 -s DISABLE_EXCEPTION_CATCHING=0 -s ALLOW_MEMORY_GROWTH=1 -s TOTAL_MEMORY=1.5GB -s MODULARIZE=1 -s EXPORT_NAME=\"'MedImgReaderModule'\" -s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"FS\"]'" )
 
 SET (CMAKE_CXX_FLAGS ${FLAGS} CACHE STRING "compile flags" FORCE)
 SET (CMAKE_C_FLAGS ${FLAGS} CACHE STRING "compile flags" FORCE)

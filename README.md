@@ -1,6 +1,7 @@
 # med-img-reader
 
-Read a dicom series in the browser using ITK series reader. 
+Read or write a 3D or 2D image with one or multiple components in a variety of formats. 
+DICOM, NIFTI, NRRD, JPG, PNG, MHD
 [Viewer example](https://hpc.medimg-ai.com)
 
 ## Installation
@@ -19,8 +20,8 @@ Read a dicom series in the browser using ITK series reader.
 	const MedImgReader = require('med-img-reader');
 
 	//Image with one or multiple components in any format
-	var inputImage = '/path/to/input{.nrrd,.nii.gz,.jpg,.dcm}'
-	var outputImage = '/path/to/output{.nrrd,.nii.gz,.jpg,.dcm}'
+	var inputImage = '/path/to/input{.nrrd,.nii.gz,.jpg,.png,.dcm}'
+	var outputImage = '/path/to/output{.nrrd,.nii.gz,.jpg,.png,.dcm}'
 
 
 	const medImgReader = new MedImgReader();
@@ -36,6 +37,37 @@ Read a dicom series in the browser using ITK series reader.
 	medImgWriter.SetFilename(outputImage);
 	medImgWriter.WriteImage();
 ---
+
+This is an example of an object return by the reader, which is compatible with [itk.js](https://insightsoftwareconsortium.github.io/itk-js/docs/index.html)
+
+---
+	image = {
+	    imageType: {
+	      dimension: 2,
+	      componentType: 'uint16_t',
+	      pixelType: 1,
+	      components: 1
+	    },
+	    name: 'Image',
+	    origin: [ 0, 0 ],
+	    spacing: [ 0.148489, 0.148489 ],
+	    direction: { rows: 2, columns: 2, data: [ 1, 0, 0, 1 ] },
+	    size: [ 256, 256 ],
+	    data: Uint16Array [...]
+	}
+---
+
+### Convert the image to a Tensor from tensorflow [tfjs](https://www.tensorflow.org/js/)
+
+---
+	const tf = require('@tensorflow/tfjs-node');//Or tfjs in browser or tfjs-node-gpu if in linux
+
+	tf.tensor(
+		Float32Array.from(image.data), 
+		[...[...image.size].reverse(), image.imageType.components]
+	));
+---
+
 
 #### Read a DICOM series
 
@@ -127,14 +159,3 @@ Here is an example for a React component:
 ### Display the image using [vtk.js](https://kitware.github.io/vtk-js/index.html)
 
 Example is here [react-med-img-viewer](https://www.npmjs.com/package/react-med-img-viewer)
-
-### Convert the image to a Tensor from tensorflow [tfjs](https://www.tensorflow.org/js/)
-
----
-	const tf = require('@tensorflow/tfjs-node');//Or tfjs in browser or tfjs-node-gpu if in linux
-
-	tf.tensor(
-		Float32Array.from(itkImage.data), 
-		[1, ...[...itkImage.size].reverse(), itkImage.imageType.components]
-	));
----

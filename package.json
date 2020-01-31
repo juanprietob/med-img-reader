@@ -15,10 +15,16 @@
     "url": "git+https://github.com/juanprietob/med-img-reader.git"
   },
   "keywords": [
-    "DICOM",
+    "dicom",
+    "nifti",
+    "nrrd",
+    "png",
+    "jpg",
+    "read",
     "reader",
-    "js",
-    "4D"
+    "medical",
+    "image",
+    "tensorflow"
   ],
   "author": "juanprietob@gmail.com",
   "license": "MIT",

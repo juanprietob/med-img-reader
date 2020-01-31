@@ -9,6 +9,18 @@ lab.experiment("Test image-pad-resample", function(){
 	lab.test('returns true when a 2D image with four components is read.', function(){
 
         const medImgReader = new MedImgReader();
+		medImgReader.SetFilename("'/Users/prieto/web/us-famli-nn/1.2.276.0.26.1.1.1.2.2019.306.49060.7812131.180224000.nrrd'");
+		medImgReader.ReadImage();
+
+		var in_img = medImgReader.GetOutput();
+		medImgReader.delete();
+
+        return true;
+    });
+
+	lab.test('returns true when a 2D image with four components is read.', function(){
+
+        const medImgReader = new MedImgReader();
 
 		var inputImage = path.join(__dirname, 'gravitational.jpg')
 		var outputImage = path.join(__dirname, 'gravitational_out.nrrd')
@@ -18,20 +30,21 @@ lab.experiment("Test image-pad-resample", function(){
 		medImgReader.SetFilename(inputImage);
 		medImgReader.ReadImage();
 
-		inputImage = medImgReader.GetOutput();
+		var in_img = medImgReader.GetOutput();
 		medImgReader.delete();
-		console.log("Image:", inputImage);
+		console.log("Image:", in_img);
 		
         const medImgReader2 = new MedImgReader();
 		
-		medImgReader2.SetInput(inputImage);
+		medImgReader2.SetInput(in_img);
 		medImgReader2.SetFilename(outputImage);
 		medImgReader2.WriteImage();
 
 		console.log(medImgReader2.GetFilename());
 		medImgReader2.GetStream(medImgReader2.GetFilename())
-		.then((wtf)=>{
-			console.log(wtf)
+		.then((stream)=>{
+			console.log(stream);
+			medImgReader2.delete();
 		})
 		
 
@@ -51,14 +64,16 @@ lab.experiment("Test image-pad-resample", function(){
 		medImgReader.SetFilename(inputImage);
 		medImgReader.ReadImage();
 
-		inputImage = medImgReader.GetOutput();
-		console.log("Image:", inputImage);
+		var in_img = medImgReader.GetOutput();
+		console.log("Image:", in_img);
+		medImgReader.delete();
 		
         const medImgReader2 = new MedImgReader();
 		
-		medImgReader2.SetInput(inputImage);
+		medImgReader2.SetInput(in_img);
 		medImgReader2.SetFilename(outputImage);
 		medImgReader2.WriteImage();
+		medImgReader2.delete();
 
         return true;
     });
@@ -75,14 +90,16 @@ lab.experiment("Test image-pad-resample", function(){
 		medImgReader.SetFilename(inputImage);
 		medImgReader.ReadImage();
 
-		inputImage = medImgReader.GetOutput();
-		console.log("Image:", inputImage);
+		var in_img = medImgReader.GetOutput();
+		console.log("Image:", in_img);
+		medImgReader.delete();
 		
         const medImgReader2 = new MedImgReader();
 		
-		medImgReader2.SetInput(inputImage);
+		medImgReader2.SetInput(in_img);
 		medImgReader2.SetFilename(outputImage);
 		medImgReader2.WriteImage();
+		medImgReader2.delete();
 
 
         return true;
@@ -100,14 +117,16 @@ lab.experiment("Test image-pad-resample", function(){
 		medImgReader.SetFilename(inputImage);
 		medImgReader.ReadImage();
 
-		inputImage = medImgReader.GetOutput();
-		console.log("Image:", inputImage);
+		var in_img = medImgReader.GetOutput();
+		console.log("Image:", in_img);
+		medImgReader.delete();
 		
         const medImgReader2 = new MedImgReader();
 		
-		medImgReader2.SetInput(inputImage);
+		medImgReader2.SetInput(in_img);
 		medImgReader2.SetFilename(outputImage);
 		medImgReader2.WriteImage();
+		medImgReader2.delete();
 
 
         return true;
@@ -125,15 +144,16 @@ lab.experiment("Test image-pad-resample", function(){
 		medImgReader.SetDirectory(inputDirectory);
 		medImgReader.ReadDICOMDirectory();
 
-		inputImage = medImgReader.GetOutput();
-		console.log("Image:", inputImage);
+		var in_img = medImgReader.GetOutput();
+		console.log("Image:", in_img);
+		medImgReader.delete();
 		
         const medImgReader2 = new MedImgReader();
 		
-		medImgReader2.SetInput(inputImage);
+		medImgReader2.SetInput(in_img);
 		medImgReader2.SetFilename(outputImage);
 		medImgReader2.WriteImage();
-
+		medImgReader2.delete();
 
         return true;
     });

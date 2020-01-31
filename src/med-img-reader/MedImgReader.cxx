@@ -269,10 +269,14 @@ void MedImgReaderBase::ReadDICOMDirectory(){
       reader->SetFileNames(fileNames);
       reader->Update();
       
-      this->SetITKImage(reader->GetOutput());
+      using ImagePointerType = typename ImageType::Pointer;
+      ImagePointerType image = reader->GetOutput();
+
+      this->SetITKImage(image);
+      this->SetImageDimension(image->GetImageDimension());
       this->SetComponentType(itk::ImageIOBase::SHORT);
       this->SetPixelType(itk::ImageIOBase::IOPixelType::SCALAR);
-      this->SetImageDimension(3);
+      
     }
 
   }catch(itk::ExceptionObject & err){
