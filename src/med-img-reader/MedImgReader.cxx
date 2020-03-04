@@ -192,17 +192,13 @@ void MedImgReaderBase::ReadImage(){
 
   this->SetComponentType(componentType);
   this->SetPixelType(pixelType);
-  
-  if (imageDimension == 2)
-  {
+  if (imageDimension == 1){
+    this->ReadVectorImage<1>(inputFileName);
+  }else if (imageDimension == 2){
     this->ReadVectorImage<2>(inputFileName);
-  }
-  else if (imageDimension == 3)
-  {
+  }else if (imageDimension == 3){
     this->ReadVectorImage<3>(inputFileName);
-  }
-  else if (imageDimension == 4)
-  {
+  }else if (imageDimension == 4){
     this->ReadVectorImage<4>(inputFileName);
   }else{
     throw "mmm... maybe save the image as 3D but with multiple components? I have no idea what to do with this";
